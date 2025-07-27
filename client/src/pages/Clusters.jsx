@@ -1,192 +1,153 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingCart, Apple, Flame, Leaf, Users, MessageCircle, Bell} from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import api from "../utils/api";
+import { useSelector } from "react-redux";
+import { FaUser, FaClock } from "react-icons/fa";
+import { BsChatDots, BsBell } from "react-icons/bs";
 
 export default function Clusters() {
-  const [viewMode, setViewMode] = useState('list');
-  const [hoveredCluster, setHoveredCluster] = useState(null);
+  const [clusters, setClusters] = useState([]);
+  const [joinedClusterIds, setJoinedClusterIds] = useState([]);
+  const user = useSelector((state) => state.user.user);
 
-  const clusters = [
-    {
-      id: '1',
-      name: 'Karol Bagh Vendors',
-      location: 'Karol Bagh Market',
-      members: 12,
-      nextTrip: 'Tomorrow 11 AM',
-      status: 'joining',
-      category: 'vegetables'
-    },
-    {
-      id: '2',
-      name: 'Chandni Chowk Group',
-      location: 'Chandni Chowk',
-      members: 8,
-      nextTrip: 'Today 3 PM',
-      status: 'active',
-      category: 'spices'
-    },
-    {
-      id: '3',
-      name: 'Paharganj Collective',
-      location: 'Main Bazaar',
-      members: 15,
-      nextTrip: 'Friday 10 AM',
-      status: 'planning',
-      category: 'general'
-    },
-    {
-      id: '4',
-      name: 'Lajpat Nagar Vendors',
-      location: 'Central Market',
-      members: 6,
-      nextTrip: 'Monday 9 AM',
-      status: 'joining',
-      category: 'fruits'
-    },
-    {
-      id: '5',
-      name: 'Sarojini Nagar Group',
-      location: 'Market Area',
-      members: 20,
-      nextTrip: 'Wednesday 11 AM',
-      status: 'active',
-      category: 'general'
+  useEffect(() => {
+    const fetchClusters = async () => {
+      try {
+        const res = await api.get("/clusters/");
+        const allClusters = res.data;
+        setClusters(allClusters);
+
+        if (user && user._id) {
+          const joinedIds = allClusters
+            .filter((cluster) =>
+              cluster.joinedUsers?.some(
+                (u) => u === user._id || u._id === user._id
+              )
+            )
+            .map((c) => c._id);
+          setJoinedClusterIds(joinedIds);
+        }
+      } catch (err) {
+        console.error("Error fetching clusters:", err);
+      }
+    };
+    fetchClusters();
+  }, [user]);
+
+  const joinCluster = async (clusterId) => {
+    if (joinedClusterIds.includes(clusterId)) return;
+
+    try {
+      await api.post(`/clusters/join/${clusterId}`);
+      alert("Joined successfully!");
+      setJoinedClusterIds((prev) => [...prev, clusterId]);
+    } catch (err) {
+      console.error("Join error:", err.response?.data || err.message);
+      alert("Error joining cluster.");
     }
-  ];
-
-  const getCategoryIcon = (category) => {
-  switch (category.toLowerCase()) {
-    case "vegetables":
-      return <Leaf className="w-5 h-5 text-green-600" />;
-    case "spices":
-      return <Flame className="w-5 h-5 text-red-600" />;
-    case "fruits":
-      return <Apple className="w-5 h-5 text-pink-500" />;
-    default:
-      return <ShoppingCart className="w-5 h-5 text-gray-500" />;
-  }
-};
+  };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'joining': return 'bg-blue-100 text-blue-800';
-      case 'planning': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+    switch (status?.toLowerCase()) {
+      case "active":
+        return "bg-green-100 text-green-700";
+      case "joining":
+        return "bg-blue-100 text-blue-700";
+      case "planning":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-600";
     }
   };
 
   return (
-    <div className="min-h-screen mt-14 bg-gradient-to-br from-orange-50 to-yellow-50">
-      {/* Main */}
-      <div className="pt-4 md:pt-8 pb-24 md:pb-8 mx-4 md:mx-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-800 mb-2 flex">
-              <span className="inline-block w-9 h-9 mr-3 bg-green-100 rounded-full text-green-600 text-2xl text-center">
-                <Users className='mt-1 ml-1'/>
-              </span>
-              Find Your Cluster
-            </h1>
-            <p className="text-lg text-gray-500 font-bold ">समूह में जुड़ें और सस्ता खरीदें</p>
-          </div>
-          <div className="flex bg-white rounded-full p-1 shadow-lg md:-mt-4 mt-5 w-auto">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-full ${
-                viewMode === 'list' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-orange-600'
-              }`}
+    <div className="min-h-screen bg-orange-50 p-6">
+      <h2 className="text-3xl font-bold mb-6 text-orange-800">
+        🧑‍🤝‍🧑 Vendor Clusters
+      </h2>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {clusters.map((cluster) => {
+          const isJoined = joinedClusterIds.includes(cluster._id);
+          const statusBadge = cluster.status ? (
+            <span
+              className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${getStatusColor(
+                cluster.status
+              )}`}
             >
-              <i className="ri-list-check text-xl mr-2"></i>List View
-            </button>
-            <button
-              onClick={() => setViewMode('map')}
-              className={`px-4 py-2 rounded-full ${
-                viewMode === 'map' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:text-orange-600'
-              }`}
+              {cluster.status}
+            </span>
+          ) : null;
+
+          return (
+            <div
+              key={cluster._id}
+              className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition flex flex-col justify-between"
             >
-              <i className="ri-map-pin-fill text-xl "></i>Map View
-            </button>
-          </div>
-        </div>
+              {/* Header */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {cluster.name}
+                  </h3>
+                  {cluster.area && (
+                    <p className="text-sm text-gray-600">{cluster.area}</p>
+                  )}
+                </div>
+                {statusBadge}
+              </div>
 
-        {viewMode === 'map' ? (
-          <div className="bg-white rounded-3xl p-6 shadow-lg mb-8">
-            <div className="relative h-96 rounded-2xl overflow-hidden">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18..."
-                width="100%"
-                height="100%"
-                allowFullScreen
-                loading="lazy"
-                style={{ border: 0 }}
-                title="Map"
-              ></iframe>
+              {/* Info */}
+              <div className="space-y-2 mt-4">
+                <p className="flex items-center gap-2 text-gray-700 text-sm">
+                  <FaUser className="text-orange-500" />
+                  {cluster.vendorsGoing || 1} vendors going
+                </p>
+                {cluster.meetingDay && cluster.meetingTime && (
+                  <p className="flex items-center gap-2 text-gray-700 text-sm">
+                    <FaClock className="text-orange-500" />
+                    {cluster.meetingDay} {cluster.meetingTime}
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="mt-5 flex items-center gap-3">
+                <button
+                  disabled={isJoined}
+                  onClick={() => joinCluster(cluster._id)}
+                  className={`w-full py-2 text-sm font-medium rounded-lg ${
+                    isJoined
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      : "bg-green-500 text-white hover:bg-green-600"
+                  }`}
+                >
+                  {isJoined ? "Joined" : "Join Now"}
+                </button>
+                <button className="text-gray-600 hover:text-orange-500">
+                  <BsChatDots size={18} />
+                </button>
+                <button className="text-gray-600 hover:text-orange-500">
+                  <BsBell size={18} />
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-  {clusters.map((cluster) => (
-    <div
-      key={cluster.id}
-      className={`bg-white rounded-3xl p-6 shadow-lg border-2 transition-all ${
-        hoveredCluster === cluster.id ? 'scale-105' : ''
-      }`}
-      onMouseEnter={() => setHoveredCluster(cluster.id)}
-      onMouseLeave={() => setHoveredCluster(null)}
-    >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center">
-          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-            {getCategoryIcon(cluster.category)}
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-800">{cluster.name}</h3>
-            <p className="text-sm text-gray-600">{cluster.location}</p>
-          </div>
-        </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(cluster.status)}`}>
-          {cluster.status}
-        </span>
+          );
+        })}
       </div>
-      <div className="mb-4 space-y-2">
-        <div className="flex items-center text-gray-700">
-          <i className="ri-user-fill text-green-600 mr-2"></i>
-          {cluster.members} vendors going
-        </div>
-        <div className="flex items-center text-gray-700">
-          <i className="ri-time-fill text-blue-600 mr-2"></i>
-          {cluster.nextTrip}
-        </div>
-      </div>
-      <div className="flex space-x-2">
-        <button className="flex-1 bg-green-600 text-white py-3 px-4 rounded-2xl font-semibold hover:bg-green-700 transition-colors">
-          <i className="ri-check-fill mr-2"></i>Join Now
-        </button>
-        <button className="px-4 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200">
-          <MessageCircle/>
-        </button>
-        <button className="px-4 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200">
-          <Bell/>
-        </button>
-      </div>
-    </div>
-  ))}
-</div>
 
-        )}
-
-        <div className="mt-8 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-3xl p-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">Can't find a cluster?</h3>
-              <p className="text-white opacity-90">Create your own and invite vendors</p>
-            </div>
-            <button className="bg-white text-orange-600 px-6 py-3 rounded-2xl font-semibold hover:bg-gray-100">
-              <i className="ri-add-fill mr-2"></i>Create Cluster
-            </button>
-          </div>
+      {/* CTA */}
+      <div className="mt-12 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-2xl p-6 text-white flex justify-between items-center shadow-lg">
+        <div>
+          <h3 className="text-xl font-bold mb-1">Can’t find a cluster?</h3>
+          <p>Create your own and invite vendors</p>
         </div>
+        <Link
+          to="/create-cluster"
+          className="bg-white text-orange-600 px-4 py-2 rounded-lg font-semibold hover:bg-orange-100"
+        >
+          + Create Cluster
+        </Link>
       </div>
     </div>
   );

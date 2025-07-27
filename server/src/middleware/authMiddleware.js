@@ -1,42 +1,20 @@
-// const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 
-// module.exports = function (req, res, next) {
-//   console.log("auth middleware triggered");
+module.exports = function (req, res, next) {
+  const authHeader = req.headers.authorization;
 
-//   const authHeader = req.headers.authorization;
-//   console.log("Authorization Header:", authHeader);
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ msg: "No token, authorization denied" });
+  }
 
-//   const token = authHeader?.split(" ")[1];
-// console.log(token);
-//   if (!token) {
-//     console.log("No token found in header");
-//     return res.status(401).json({ msg: "No token, auth denied" });
-//   }
-
-//   try {
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//     req.user = decoded;
-//     console.log("Token decoded:", decoded);
-//     next();
-//   } catch (err) {
-//     console.error("JWT verification failed:", err.message);
-//     return res.status(401).json({ msg: "Token is not valid" });
-//   }
-// };
-
-const jwt = require('jsonwebtoken');
-
-const auth = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+  const token = authHeader.split(" ")[1]; 
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded; // Attach user info to request
     next();
   } catch (err) {
-    res.status(401).json({ message: 'Invalid token' });
+    console.error("JWT error:", err.message);
+    res.status(401).json({ msg: "Token is not valid" });
   }
 };
-
-module.exports = auth;

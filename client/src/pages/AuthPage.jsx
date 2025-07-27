@@ -20,11 +20,11 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    navigate("/");
-  }
-}, []);
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+    }
+  }, []);
 
   const checkUserAndSendOtp = async () => {
     if (!phone || phone.length !== 10)
@@ -44,7 +44,6 @@ const AuthPage = () => {
     }
     setLoading(false);
   };
-  
 
   const handleVerify = async () => {
     if (!otp) return setMessage("Enter the OTP sent to your phone.");
@@ -76,15 +75,14 @@ const AuthPage = () => {
         {/* Logo & Title */}
         <div className="flex flex-col items-center mb-6">
           <div className="flex items-center gap-2 text-2xl font-bold text-orange-600">
-            Welcome 
+            Welcome
           </div>
           <p className="text-sm text-gray-600 text-center mt-1">
             आपका स्वागत है !
-            
           </p>
           <span className="text-gray-800 font-medium">
-              Sign in to join clusters and get best prices!
-            </span>
+            Sign in to join clusters and get best prices!
+          </span>
         </div>
 
         {/* Flash Message */}
@@ -137,7 +135,9 @@ const AuthPage = () => {
             {/* New user details form */}
             {!isExistingUser && (
               <>
-                <label className="block text-sm font-medium text-gray-700 mb-1">👤 Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  👤 Full Name
+                </label>
                 <input
                   type="text"
                   value={fullName}
@@ -145,7 +145,9 @@ const AuthPage = () => {
                   className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
                 />
 
-                <label className="block text-sm font-medium text-gray-700 mb-1">🗣️ Language</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  🗣️ Language
+                </label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
@@ -155,7 +157,9 @@ const AuthPage = () => {
                   <option>English</option>
                 </select>
 
-                <label className="block text-sm font-medium text-gray-700 mb-1">🎯 Role</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  🎯 Role
+                </label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}

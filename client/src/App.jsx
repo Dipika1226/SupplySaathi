@@ -1,15 +1,16 @@
 import { Routes, Route } from "react-router-dom";
 import "./index.css";
 import Home from "./components/Home";
-import Profile from "./components/Profile";
-import Clusters from "./components/Clusters";
+import Profile from "./pages/Profile";
+import Clusters from "./pages/Clusters";
 import Footer from "./components/Footer";
-import Supplier from "./components/Supplier";
+import Supplier from "./pages/Supplier";
 import AuthPage from "./pages/AuthPage";
 import Navbar from "./pages/Navbar";
-import Trips from "./components/Trips";
+import Trips from "./pages/Trips";
 import Dashboard from "./pages/Dashboard";
 import RequireAuth from "./components/RequireAuth";
+import CreateCluster from "./pages/CreateCluster";
 
 export default function App() {
   const token = localStorage.getItem("token");
@@ -24,6 +25,14 @@ export default function App() {
         <Route path="/auth" element={<AuthPage />} />
 
         {/* Protected Routes */}
+        <Route
+          path="/create-cluster"
+          element={
+            <RequireAuth>
+              <CreateCluster />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/"
           element={
