@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/authMiddleware");
+const { authMiddleware } = require("../middleware/authMiddleware");
 
 const {
   createCluster,
@@ -9,10 +9,10 @@ const {
   joinCluster,
 } = require("../controllers/clusterController");
 
-router.get("/", getAllClusters);         // Public
-router.get("/nearby", getNearbyClusters); // Public
+router.get("/", getAllClusters);               // Public
+router.get("/nearby", getNearbyClusters);      // Public
 
-router.post("/create", auth, createCluster); // Authenticated
-router.post("/join/:id", auth, joinCluster); // Authenticated
+router.post("/create", authMiddleware, createCluster);  // Authenticated
+router.post("/join/:id", authMiddleware, joinCluster);  // Authenticated
 
 module.exports = router;

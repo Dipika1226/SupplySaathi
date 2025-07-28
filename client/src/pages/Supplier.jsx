@@ -1,210 +1,288 @@
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
-import { suppliers } from '../utils/suppliersData';
-import{Store, Grid, Leaf, Apple, Flame, Wheat, Milk, Phone, Heart, UserCheck, Truck, Check, UserRoundPlus} from 'lucide-react'
+import React, { useEffect, useState } from "react";
+import api from "../utils/api";
 
-export default function Supplier() {
-  const [hoveredSupplier, setHoveredSupplier] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-
-const categories = [
-  { id: 'all', name: 'All', icon: Grid },
-  { id: 'vegetables', name: 'Vegetables', icon: Leaf },
-  { id: 'fruits', name: 'Fruits', icon: Apple },
-  { id: 'spices', name: 'Spices', icon: Flame },
-  { id: 'grains', name: 'Grains', icon: Wheat },
-  { id: 'dairy', name: 'Dairy', icon: Milk }
+const CATEGORIES = [
+  "all",
+  "vegetables",
+  "fruits",
+  "groceries",
+  "dairy",
+  "bakery",
+  "other",
 ];
 
+const SupplierCard = ({ supplier }) => {
+  const totalInventory = supplier.inventory.length;
+  const priceRange = getPriceRange(supplier.inventory);
 
-  const filteredSuppliers = selectedCategory === 'all' 
-    ? suppliers 
-    : suppliers.filter(supplier => supplier.category === selectedCategory);
+  function getPriceRange(inventory) {
+    const prices = inventory.map((item) => item.pricePerUnit);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return min === max
+      ? `₹${min}/${inventory[0]?.unit || "unit"}`
+      : `₹${min}-${max}/${inventory[0]?.unit || "unit"}`;
+  }
 
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
+  return (
+    <div className="border rounded-xl shadow-md p-4 w-full sm:w-[320px] bg-white flex flex-col justify-between">
+      <div>
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">{supplier.name}</h2>
+            <p className="text-sm text-gray-500">
+              {supplier.area}, {supplier.city}
+            </p>
+          </div>
+          <span className="text-sm font-medium text-orange-600 bg-orange-100 rounded px-2 py-1">
+            {priceRange}
+          </span>
+        </div>
 
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <i key={i} className="ri-star-fill text-yellow-400"></i>
-      );
+        <div className="mt-1 text-xs text-indigo-700 bg-indigo-100 inline-block px-2 py-0.5 rounded">
+          {supplier.category}
+        </div>
+
+        <div className="mt-2 text-sm text-gray-600">
+          📦 {totalInventory} items • 📞 {supplier.contact}
+        </div>
+
+        <div className="mt-2 flex flex-wrap gap-1">
+          {supplier.deliverySlots.map((slot, idx) => (
+            <span
+              key={idx}
+              className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs"
+            >
+              {slot}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded text-sm w-full">
+          View Details
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const SupplierPage = () => {
+  const [suppliers, setSuppliers] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const [form, setForm] = useState({
+    name: "",
+    city: "",
+    area: "",
+    contact: "",
+    category: "vegetables",
+    deliverySlots: "",
+    inventory: "",
+  });
+
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const res = await api.get("/suppliers");
+        setSuppliers(res.data);
+        setFiltered(res.data);
+      } catch (err) {
+        console.error("Error fetching suppliers", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSuppliers();
+  }, []);
+
+  const handleCategoryFilter = (e) => {
+    const selected = e.target.value;
+    setCategoryFilter(selected);
+    if (selected === "all") {
+      setFiltered(suppliers);
+    } else {
+      setFiltered(suppliers.filter((s) => s.category === selected));
     }
+  };
 
-    if (hasHalfStar) {
-      stars.push(
-        <i key="half" className="ri-star-half-fill text-yellow-400"></i>
-      );
+  const handleFormChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleAddSupplier = async () => {
+    const inventory = form.inventory.split(",").map((item) => {
+      const [itemName, price, qty, unit] = item.split("|");
+      return {
+        itemName: itemName.trim(),
+        pricePerUnit: Number(price),
+        quantityAvailable: Number(qty),
+        unit: unit || "kg",
+      };
+    });
+
+    const payload = {
+      ...form,
+      deliverySlots: form.deliverySlots.split(",").map((s) => s.trim()),
+      inventory,
+    };
+
+    try {
+      const res = await api.post("/suppliers", payload);
+      setSuppliers([res.data.supplier, ...suppliers]);
+      setFiltered([res.data.supplier, ...filtered]);
+      setShowModal(false);
+      setForm({
+        name: "",
+        city: "",
+        area: "",
+        contact: "",
+        category: "vegetables",
+        deliverySlots: "",
+        inventory: "",
+      });
+    } catch (err) {
+      console.error("Failed to add supplier", err);
+      alert("Failed to add supplier");
     }
-
-    const emptyStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <i key={`empty-${i}`} className="ri-star-line text-gray-300"></i>
-      );
-    }
-
-    return stars;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 mt-14">
-     
-      {/* Main Content */}
-      <div className="pt-4 md:pt-8 pb-24 md:pb-8">
-        {/* Header */}
-        <div className="mx-4 md:mx-8 mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            <div className="w-9 h-9 inline-block mr-3 bg-blue-100 rounded-full align-middle">
-              <Store className="text-2xl text-blue-600 flex items-center justify-center h-full ml-1.5"/>
-            </div>
-            Trusted Suppliers
-          </h1>
-          <p className="text-lg text-gray-600">भरोसेमंद आपूर्तिकर्ता खोजें</p>
+    <div className="p-6 bg-[#fffdf6] min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Suppliers</h1>
+        <div className="flex gap-2 items-center">
+          <select
+            className="border rounded px-3 py-2 text-sm"
+            value={categoryFilter}
+            onChange={handleCategoryFilter}
+          >
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat[0].toUpperCase() + cat.slice(1)}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            + Add Supplier
+          </button>
         </div>
+      </div>
 
-        {/* Category Filter */}
-        <div className="mx-4 md:mx-8 mb-6">
-          <div className="flex space-x-2 overflow-x-auto pb-2">
-            {categories.map((category) => (
+      {/* Suppliers Grid */}
+      {loading ? (
+        <div>Loading...</div>
+      ) : filtered.length === 0 ? (
+        <div>No suppliers available.</div>
+      ) : (
+        <div className="flex flex-wrap gap-6">
+          {filtered.map((supplier) => (
+            <SupplierCard key={supplier._id} supplier={supplier} />
+          ))}
+        </div>
+      )}
+
+      {/* Add Supplier Button at Bottom */}
+      <div className="flex justify-center mt-10">
+        <button
+          onClick={() => setShowModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded text-sm"
+        >
+          + Add Supplier
+        </button>
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-start sm:items-center p-4 z-50">
+          <div className="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 relative">
+            <h2 className="text-xl font-semibold mb-4">Add New Supplier</h2>
+
+            <input
+              className="w-full border mb-2 px-3 py-2 rounded"
+              name="name"
+              placeholder="Name"
+              value={form.name}
+              onChange={handleFormChange}
+            />
+            <input
+              className="w-full border mb-2 px-3 py-2 rounded"
+              name="city"
+              placeholder="City"
+              value={form.city}
+              onChange={handleFormChange}
+            />
+            <input
+              className="w-full border mb-2 px-3 py-2 rounded"
+              name="area"
+              placeholder="Area"
+              value={form.area}
+              onChange={handleFormChange}
+            />
+            <input
+              className="w-full border mb-2 px-3 py-2 rounded"
+              name="contact"
+              placeholder="Contact (10-digit)"
+              value={form.contact}
+              onChange={handleFormChange}
+            />
+
+            <select
+              className="w-full border mb-2 px-3 py-2 rounded"
+              name="category"
+              value={form.category}
+              onChange={handleFormChange}
+            >
+              {CATEGORIES.filter((c) => c !== "all").map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat[0].toUpperCase() + cat.slice(1)}
+                </option>
+              ))}
+            </select>
+
+            <input
+              className="w-full border mb-2 px-3 py-2 rounded"
+              name="deliverySlots"
+              placeholder="Delivery Slots (comma separated)"
+              value={form.deliverySlots}
+              onChange={handleFormChange}
+            />
+
+            <textarea
+              className="w-full border mb-3 px-3 py-2 rounded"
+              name="inventory"
+              placeholder="Inventory items: name|price|qty|unit, name|price|qty|unit"
+              value={form.inventory}
+              onChange={handleFormChange}
+            />
+
+            <div className="flex justify-end gap-2">
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`flex items-center px-4 py-2 rounded-full transition-colors whitespace-nowrap ${
-                  selectedCategory === category.id
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-orange-50 hover:text-orange-600'
-                }`}
+                className="bg-gray-300 px-4 py-2 rounded"
+                onClick={() => setShowModal(false)}
               >
-                <div className="w-5 h-5 mr-2 flex items-center justify-center">
-                  <category.icon className="w-5 h-5" />
-                </div>
-                {category.name}
+                Cancel
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Suppliers Grid */}
-        <div className="mx-4 md:mx-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSuppliers.map((supplier) => (
-              <div
-                key={supplier.id}
-                className={`bg-white rounded-3xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 ${
-                  hoveredSupplier === supplier.id ? 'transform scale-105' : ''
-                }`}
-                onMouseEnter={() => setHoveredSupplier(supplier.id)}
-                onMouseLeave={() => setHoveredSupplier(null)}
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded"
+                onClick={handleAddSupplier}
               >
-                {/* Supplier Image */}
-                <div className="relative h-48 bg-gray-100">
-                  <img
-                    src={supplier.image}
-                    alt={supplier.name}
-                    className="w-full h-full object-cover object-top"
-                  />
-                  {supplier.verified && (
-                    <div className="absolute top-3 right-3 bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center">
-    <Check className="w-4 h-4 mr-1" />
-    Verified
-  </div>
-)}
-
-{supplier.delivery && (
-  <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center">
-    <Truck className="w-4 h-4 mr-1" />
-    Delivery
-  </div>
-                  )}
-                </div>
-
-                {/* Supplier Info */}
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800">{supplier.name}</h3>
-                      <p className="text-sm text-gray-600">{supplier.location}</p>
-                    </div>
-                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-semibold">
-                      {supplier.priceRange}
-                    </span>
-                  </div>
-
-                  {/* Rating */}
-                  <div className="flex items-center mb-3">
-                    <div className="flex items-center mr-1">
-                      {renderStars(supplier.rating)}
-                    </div>
-                    <span className="text-sm font-semibold text-gray-700">★ {supplier.rating}</span>
-                  </div>
-
-                  {/* Trusted By */}
-                  <div className="flex items-center mb-4">
-                    <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mr-2">
-                      <UserCheck className='text-green-600'/>
-                    </div>
-                    <span className="text-sm text-gray-600">Trusted by {supplier.trustedBy} vendors</span>
-                  </div>
-
-                  {/* Specialties */}
-                  <div className="mb-4">
-                    <div className="flex flex-wrap gap-1">
-                      {supplier.specialties.map((specialty, index) => (
-                        <span
-                          key={index}
-                          className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs"
-                        >
-                          {specialty}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex space-x-2">
-                    <button className="flex-1 bg-orange-600 text-white py-3 px-4 rounded-2xl font-semibold hover:bg-orange-700 transition-colors whitespace-nowrap">
-                      <div className="w-5 h-5 inline-block mr-2">
-                        <i className="ri-eye-fill"></i>
-                      </div>
-                      View Details
-                    </button>
-                    <button className="px-4 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 transition-colors">
-                      <div className="w-5 h-5 flex items-center justify-center">
-                        <Phone/>
-                      </div>
-                    </button>
-                    <button className="px-4 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 transition-colors">
-                      <div className="w-5 h-5 flex items-center justify-center">
-                        <Heart/>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Add Supplier CTA */}
-        <div className="mx-4 md:mx-8 mt-8">
-          <div className="bg-gradient-to-r from-blue-400 to-purple-400 rounded-3xl p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">Know a great supplier?</h3>
-                <p className="text-white opacity-90">Help the community by adding trusted suppliers</p>
-              </div>
-              <button className="bg-white text-blue-600 px-6 py-3 rounded-2xl font-semibold hover:bg-gray-100 transition-colors whitespace-nowrap">
-                <div className="w-5 h-4 inline-block mr-2">
-                  <UserRoundPlus/>
-                </div>
                 Add Supplier
               </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
-}
+};
+
+export default SupplierPage;

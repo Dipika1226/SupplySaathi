@@ -10,9 +10,12 @@ app.use(cors());
 app.use(express.json());
 
 const authRoutes = require("./routes/authRoutes");
-const clusterRoutes=require("./routes/clusterRoutes");
+const clusterRoutes = require("./routes/clusterRoutes");
+const supplierRoutes = require("./routes/supplierRoutes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/clusters", clusterRoutes);
+app.use("/api/suppliers", supplierRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {

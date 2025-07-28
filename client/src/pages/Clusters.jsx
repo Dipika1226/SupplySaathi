@@ -62,10 +62,9 @@ export default function Clusters() {
 
   return (
     <div className="min-h-screen bg-orange-50 p-6">
-      <h2 className="text-3xl font-bold mb-6 text-orange-800">
+      <h2 className="text-3xl font-bold mb-22 text-orange-900 ">
         🧑‍🤝‍🧑 Vendor Clusters
       </h2>
-
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {clusters.map((cluster) => {
           const isJoined = joinedClusterIds.includes(cluster._id);
